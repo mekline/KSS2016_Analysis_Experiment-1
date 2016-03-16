@@ -2,13 +2,20 @@
 #experiment (TVW at the moment!)
 
 #NOTE: Data cleaning & participant selection is lengthy and messy (See FCW_participants for details on fussout/other exclusion)
-#Descriptives/analysis starts on line 314
+#Descriptives/analysis starts on about line 320
 
-#setwd("C:\\Users\\mekline\\Documents\\My Dropbox\\_Projects\\TransitiveVerbsWugging-FCW 2010\\Forced Choice\\TVW-twoquestions\\Analysis - Final Cogsci Submit")
-setwd("/Users/mekline/Dropbox/_Projects/Wugging - Finished Experiments/2010 Forced Choice Wugging - TouchNoTouch/TVW-twoquestions-ANALYSIS/Analysis - Final Cogsci Submit")
+library(reshape)
+library(stringr)
+library(ggplot2)
+library(testit)
+library(ggthemes)
+
+assert("Make sure R is pointed at the right working directory", sum(str_detect(dir(), "Data_E1"))==1)
+#See setwd() or Session > Set Working Directory > To Source File Location 
+
 #DATA LOADING & SHAPING
 #libraries
-library(reshape)
+
 
 ####TVW -from before automated touch trials
 #Load in the data from the TVW files
@@ -17,7 +24,7 @@ mydata <- data.frame(NULL)
 participants <- c(1,2,3,4,5,6,7,9,10,11,13,14,15,16,17) #fussed out & didn'trecord: 8, 12 
 
 for(f in participants) {
-	tryCatch({filename = paste('Data_full/TVW_', f, '.dat', sep='')}, finally="")
+	tryCatch({filename = paste('Data_E1/TVW_', f, '.dat', sep='')}, finally="")
 	tmp <- read.table(filename, header=FALSE, sep=" ")
 	names(tmp) <- c("Subject", "Trial.Number", "Item.Number", "Item",
 			 "First.Side", "Causal.Side", "Response.Causal", "Choice.Causal", "Response.NC", "Choice.NC", "Yesfirst")
@@ -51,7 +58,7 @@ mydata2 <- data.frame(NULL)
 participants <- c(19,21,23,24,25,26,27,28,29,35,36,37,38,39) #fussed out, bilingual, pilot: 18, 20, 22, 30-34, 
 
 for(f in participants) {
-	tryCatch({filename = paste('Data_full/TVW_', f, '.dat', sep='')}, finally="")
+	tryCatch({filename = paste('Data_E1/TVW_', f, '.dat', sep='')}, finally="")
 	tmp <- read.table(filename, header=FALSE, sep=" ")
 	names(tmp) <- c("Subject", "Trial.Number", "Item.Number", "Item",
 			 "First.Side", "Causal.Side", "Response.Causal", "Choice.Causal", "Response.NC", "Choice.NC", "Yesfirst", "Touch.Key", "Choice.T")
@@ -378,18 +385,49 @@ wilcox.test(PilkingScores$x, TouchingScores$x, exact=FALSE, paired=TRUE)
 
 #Time for bootstrapped confidence intervals around the means of the 3 conditions!
 library(bootstrap)
-pilk.boot.mean = bootstrap(PilkingScores$x, 1000, mean)
-quantile(pilk.boot.mean$thetastar, c(0.025, 0.975))
-nopilk.boot.mean = bootstrap(NotPilkingScores$x, 1000, mean)
-quantile(nopilk.boot.mean$thetastar, c(0.025, 0.975))
+graphdata <- data.frame(NULL)
 touching.boot.mean = bootstrap(TouchingScores$x, 1000, mean)
-quantile(touching.boot.mean$thetastar, c(0.025, 0.975))
+graphdata <- rbind(graphdata, quantile(touching.boot.mean$thetastar, c(0.025, 0.975)))
+pilk.boot.mean = bootstrap(PilkingScores$x, 1000, mean)
+graphdata<- rbind(graphdata, quantile(pilk.boot.mean$thetastar, c(0.025, 0.975)))
+nopilk.boot.mean = bootstrap(NotPilkingScores$x, 1000, mean)
+graphdata<- rbind(graphdata, quantile(nopilk.boot.mean$thetastar, c(0.025, 0.975)))
+
+names(graphdata) <- c("LowCI","HighCI")
+
+graphdata$CondName <- c("Manipulation Check", "Positive Transitive", "Negative Transitive")
+
+#New 3/16/16 make some pretty ggplot graphs 
+graphdata$Mean[1] <- mean(TouchingScores$x)
+graphdata$Mean[2] <- mean(PilkingScores$x)
+graphdata$Mean[3] <- mean(NotPilkingScores$x)
+
+graphdata$ToOrder <- c(1,2,3)
+
+p<- ggplot(graphdata, aes(x=CondName, y=Mean)) +
+  geom_bar(stat="identity", fill="darkcyan", colour="darkcyan") +
+  aes(x=reorder(CondName, ToOrder)) +
+  geom_errorbar(aes(ymin=LowCI, ymax=HighCI), colour="black", width=.1) +
+  coord_cartesian(ylim=c(0,4))+  
+  #theme_set(theme_gray(base_size = 14))+
+  #ggtitle(title)+
+  ylab("Mean Causal Choices")+
+  xlab("")+
+  theme(legend.position="none")+
+  geom_hline(aes(yintercept=2), color="black", linetype="dashed")
+
+p
+ggsave(filename="E1.jpg", plot=p, width=6, height=4)
 
 
 
 
 
-#T tests for paper
+  
+
+
+
+#T tests for paper (just note that these dont' come out different from above)
 t.test(PilkingScores$x, mu=2, exact=FALSE)
 t.test(NotPilkingScores$x, mu=2, exact=FALSE)
 t.test(TouchingScores$x, mu=2, exact=FALSE)
