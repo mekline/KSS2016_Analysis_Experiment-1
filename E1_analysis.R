@@ -9,6 +9,7 @@ library(stringr)
 library(ggplot2)
 library(testit)
 library(ggthemes)
+library(bootstrap)
 
 assert("Make sure R is pointed at the right working directory", sum(str_detect(dir(), "Data_E1"))==1)
 #See setwd() or Session > Set Working Directory > To Source File Location 
@@ -403,10 +404,11 @@ graphdata$Mean[2] <- mean(PilkingScores$x)
 graphdata$Mean[3] <- mean(NotPilkingScores$x)
 
 graphdata$ToOrder <- c(1,2,3)
-
-p<- ggplot(graphdata, aes(x=CondName, y=Mean)) +
-  geom_bar(stat="identity", fill="darkcyan", colour="darkcyan") +
+barcolors = c("steelblue4", "steelblue4", "steelblue4") #Dumb bug! I am overriding R's default order and the colors don't go with :(
+p<- ggplot(graphdata, aes(x=CondName, y=Mean, fill=CondName, group=CondName)) +
+  geom_bar(stat="identity",) +
   aes(x=reorder(CondName, ToOrder)) +
+  scale_fill_manual(values=barcolors) +
   geom_errorbar(aes(ymin=LowCI, ymax=HighCI), colour="black", width=.1) +
   coord_cartesian(ylim=c(0,4))+  
   #theme_set(theme_gray(base_size = 14))+
@@ -418,6 +420,7 @@ p<- ggplot(graphdata, aes(x=CondName, y=Mean)) +
 
 p
 ggsave(filename="E1.jpg", plot=p, width=6, height=4)
+
 
 
 
@@ -508,7 +511,7 @@ sd(NPScore4$x)/sqrt(length(NPScore4$x))
 
 
 ################################################
-#Old ANALYSIS
+#Weird exploratory ANALYSIS
 ##ANALYSIS - DESCRIPTIVES
 #How did they do on causal questions?
 
